@@ -1,88 +1,145 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { observer } from 'mobx-react'
+import { observable, autorun, when } from 'mobx';
 import styled from 'styled-components'
-import { observable } from 'mobx';
-import { v4 as uuid} from 'uuid';
+//import { v4 as uuid} from 'uuid';
 
+import TagsList from './TagsList'
 import TodoListItem from './TodoListItem'
+import AppendingLogView from './AppendingLogView'
+
+import {TodoStatus, createTodoStore} from '../store/TodoStore'
+
+import storesContext from '../context/MainContext'
+
+const useStores = () => React.useContext(storesContext)
 
 
 function TodoList({ className }) {
+    const typedTodo = useRef(null);
+
     const [ store ] = useState(createTodoStore);
 
+    const { appendingLogStore } = useStores();
+    
     return (
         <div className={className}>
             <header>
                 <h1 className="title">TODO List Example</h1>
             </header>
-            <section>
-                <ul>
-                    {store.activeItems.map(item => (
-                        <TodoListItem
-                            key={item.id}
-                            name={item.name}
-                            isComplete={item.isComplete}
-                            onComplete={() => store.setCompleted(item.id)}
-                            onChange={(e) => store.setItemName(item.id, e.target.value)}
-                        />
-                    ))}
-                </ul>
-                <button onClick={store.addItem}>
-                    Add New Item
-                </button>
-            </section>
+            <div className="flexContainer">
+                <section className="flexLeft">
+                    <section>
+                        <input ref={typedTodo}/>
+                        <button onClick={() => {
+                            if(typedTodo.current.value.trim().length > 0) store.addItem(typedTodo.current.value)
+                            typedTodo.current.value = '';
+                        }}>
+                            Add New Item
+                        </button>
+                        <ul>
+                            {store.activeItems.map(item => (
+                                <TodoListItem
+                                    key={item.id}
+                                    name={item.name}
+                                    tags={[...item.tags]}
+                                    status={TodoStatus[item.status]}
+                                    onComplete={() => {
+                                        const before = TodoStatus[item.status]
+                                        store.setStatusNext(item.id)
+                                        const after = TodoStatus[item.status]
+                                        appendingLogStore.add(`Todo Item [${item.name}] Status Changed: ${before} -> ${after}`)
+                                        
+                                    }}
+                                    onChange={(e) => {
+                                        appendingLogStore.add(`Todo Item Name [${item.name}] Changed: ${e}`)
+                                        store.setItemName(item.id, e.target.text)
+                                    }}
+                                    onTagClick={(e) => {
+                                        const tag = e.target.value;
+                                        if(store.hasTag(item.id, tag)){
+                                            store.deleteTag(item.id, tag)
+                                            appendingLogStore.add(`Todo Item [${item.name}]: Tag [${tag}] Deleted`)
+                                        } else {
+                                            store.addTag(item.id, tag)
+                                            appendingLogStore.add(`Todo Item [${item.name}]: Tag [${tag}] Added`)
+                                        }
+                                        
+                                    }}
+                                />
+                            ))}
+                        </ul>
+                    </section>
+                    <section>
+                        <h2 className="completedTitle">Completed Items</h2>
+                        <ul className="completedItemList">
+                            {store.completedItems.map(item => (
+                                <li className="completedItem" key={item.id}>
+                                    <div className="completedItemName">{item.name}</div> 
+                                    {[...item.tags].map(t => <div className="completedItemTag">{t}</div>)}
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                </section>
+                <section className="flexRight">
+                    <TagsList/>
+                </section>
+
+            </div>
+            <div className="">
+                    <AppendingLogView/>
+            </div>
             <footer>
-                <h2 className="completedTitle">Completed Items</h2>
-                <ul>
-                    {store.completedItems.map(item => (
-                        <li key={item.id}>
-                            {item.name}
-                        </li>
-                    ))}
-                </ul>
+                    
             </footer>
         </div>
     )
 }
 
-function createTodoStore() {
-    const self = observable({
-        items: [{
-            id: uuid(),
-            name: "Sample item",
-            isComplete: false,
-        }],
 
-        get activeItems() {
-            return self.items.filter(i => !i.isComplete);
-        },
-        get completedItems() {
-            return self.items.filter(i => i.isComplete);
-        },
 
-        addItem() {
-            self.items.push({
-                id: uuid(),
-                name: `Item ${self.items.length}`,
-            });
-        },
-        setItemName(id, name) {
-            const item = self.items.find(i => i.id === id);
-            item.name = name;
-        },
-        setCompleted(id) {
-            const item = self.items.find(i => i.id === id);
-            item.isComplete = true;
-        },
-    })
-
-    return self;
-}
 
 export default styled(observer(TodoList))`
     background-color: lightgray;
 
     .title {
         color: orange;
+    }
+    .flexContainer{
+        height:80vh;
+        display:flex;
+        flex-direction:row;
+    }
+    .flexLeft, .flexRight{
+        width:50%
+    }
+    ul{
+        list-style-type:none;
+    }
+    .completedItem{
+        display:flex;
+        flex-direction:row;
+        flex-wrap:wrap;
+        background:white;
+        border: black 1px solid;
+        border-radius:3px;
+        margin:2px;
+        padding:2px 4px;
+
+    }
+    .completedItemName{
+        font-size:1em;
+        font-weight:bold;
+        width:100%;
+    }
+    .completedItemTag{
+        font-size:0.8em;
+        border: black 1px solid;
+        border-radius:3px;
+        padding: 1px 2px;
+        margin: 2px;
+        background-color: #E9C46A;
+
     }
 `
