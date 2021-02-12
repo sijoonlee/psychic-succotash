@@ -7,19 +7,29 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons'
 
 const useStores = () => React.useContext(storesContext)
 
+
 function TagsList({ className }) {
-    const { tagStore } = useStores();
+    const { tagStore,appendingLogStore } = useStores();
+
     const typedTag = useRef(null);
     return (
         <div className={className}>
             <div className="newTagForm">
                 <input className="newTagInput" type="text" ref={typedTag}></input>
-                <div className="newTagClick" onClick={()=>tagStore.addTag(typedTag.current.value)}>Click to Add</div>
+                <div className="newTagClick" onClick={()=>{
+                    if(tagStore.addTag(typedTag.current.value)){
+                        appendingLogStore.add(`Tag [${typedTag.current.value}] : Newly Added`)
+                    }}}>Click to Add
+                </div>
             </div>
             <div className="tagItemsContainer">
                 {tagStore.alltags.map(tag => (
                     <div className="tagItem">
-                        <div className="tagDelete" onClick={()=>tagStore.deleteTag(tag)}><FontAwesomeIcon icon={faTrash} /></div>
+                        <div className="tagDelete" onClick={()=>{
+                            tagStore.deleteTag(tag)
+                            appendingLogStore.add(`Tag [${tag}] : deleted`)
+                            }}><FontAwesomeIcon icon={faTrash} />
+                        </div>
                         <div className="tagName">{tag}</div>
                     </div>
                 ))}
