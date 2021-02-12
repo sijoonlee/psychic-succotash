@@ -18,9 +18,9 @@ const useStores = () => React.useContext(storesContext)
 function TodoList({ className }) {
     const typedTodo = useRef(null);
 
-    const [ store ] = useState(createTodoStore);
+    //const [ store ] = useState(createTodoStore());
 
-    const { appendingLogStore } = useStores();
+    const { todoStore, appendingLogStore } = useStores();
     
     return (
         <div className={className}>
@@ -32,13 +32,16 @@ function TodoList({ className }) {
                     <section>
                         <input ref={typedTodo}/>
                         <button onClick={() => {
-                            if(typedTodo.current.value.trim().length > 0) store.addItem(typedTodo.current.value)
+                            if(typedTodo.current.value.trim().length > 0) {
+                                todoStore.addItem(typedTodo.current.value.trim())
+                                //appendingLogStore.add(`Todo Item [${typedTodo.current.value.trim()}] added`)
+                            }
                             typedTodo.current.value = '';
                         }}>
                             Add New Item
                         </button>
                         <ul>
-                            {store.activeItems.map(item => (
+                            {todoStore.activeItems.map(item => (
                                 <TodoListItem
                                     key={item.id}
                                     name={item.name}
@@ -46,22 +49,22 @@ function TodoList({ className }) {
                                     status={TodoStatus[item.status]}
                                     onComplete={() => {
                                         const before = TodoStatus[item.status]
-                                        store.setStatusNext(item.id)
+                                        todoStore.setStatusNext(item.id)
                                         const after = TodoStatus[item.status]
                                         appendingLogStore.add(`Todo Item [${item.name}] Status Changed: ${before} -> ${after}`)
                                         
                                     }}
                                     onChange={(e) => {
                                         appendingLogStore.add(`Todo Item Name [${item.name}] Changed: ${e}`)
-                                        store.setItemName(item.id, e.target.text)
+                                        todoStore.setItemName(item.id, e.target.text)
                                     }}
                                     onTagClick={(e) => {
                                         const tag = e.target.value;
-                                        if(store.hasTag(item.id, tag)){
-                                            store.deleteTag(item.id, tag)
+                                        if(todoStore.hasTag(item.id, tag)){
+                                            todoStore.deleteTag(item.id, tag)
                                             appendingLogStore.add(`Todo Item [${item.name}]: Tag [${tag}] Deleted`)
                                         } else {
-                                            store.addTag(item.id, tag)
+                                            todoStore.addTag(item.id, tag)
                                             appendingLogStore.add(`Todo Item [${item.name}]: Tag [${tag}] Added`)
                                         }
                                         
@@ -73,7 +76,7 @@ function TodoList({ className }) {
                     <section>
                         <h2 className="completedTitle">Completed Items</h2>
                         <ul className="completedItemList">
-                            {store.completedItems.map(item => (
+                            {todoStore.completedItems.map(item => (
                                 <li className="completedItem" key={item.id}>
                                     <div className="completedItemName">{item.name}</div> 
                                     {[...item.tags].map(t => <div className="completedItemTag">{t}</div>)}

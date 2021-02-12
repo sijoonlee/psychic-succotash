@@ -1,4 +1,4 @@
-import { observable } from 'mobx';
+import { observable, autorun } from 'mobx';
 import { v4 as uuid} from 'uuid';
 
 const TodoStatus = ["Todo", "On Progress", "Finished"];
@@ -12,9 +12,11 @@ function next(current){
 }
     
 
-function createTodoStore() {
+function createTodoStore(autorunCallback) {
         
     const self = observable({
+        prevLength:1,
+        currLength:1,
         items: [{
             id: uuid(),
             name: "Sample item",
@@ -36,6 +38,7 @@ function createTodoStore() {
                 status: 0,
                 tags: new Set()
             });
+            self.currLength = self.items.length
         },
         setItemName(id, name) {
             const item = self.items.find(i => i.id === id);
@@ -64,6 +67,23 @@ function createTodoStore() {
         getCurrStatus(id){
             const item = self.items.find(i => i.id === id);
             return TodoStatus[item.status];
+        },
+        updateLength(){
+            self.prevLength = self.currLength
+        }
+    })
+    autorun(()=>{
+        // self.alltags.forEach((tag)=>{
+        //     console.log(tag)
+        // })
+        // console.log("prev length", self.prevLength)
+        // console.log("curr length", self.currLength)
+        if(self.prevLength < self.currLength){
+            self.updateLength();
+            if(autorunCallback !=null) autorunCallback("todo added");
+        } else if(self.prevLength > self.currLength) {
+            self.updateLength();
+            if(autorunCallback !=null) autorunCallback("todo removed");
         }
     })
 
